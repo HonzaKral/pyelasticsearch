@@ -335,8 +335,41 @@ class ElasticSearch(object):
                                  query_params)
 
     @es_kwargs('consistency', 'refresh')
-    def bulk_index(self, index, doc_type, docs, id_field='id',
-                   query_params=None):
+    def bulk(self, docs, action_template=None, query_params=None):
+        """
+        :arg docs: An iterable of things, each of which is either a dict
+            representing a doc or a tuple (or something, maybe) representing
+            (action dict, doc dict). Or something or something.
+        """
+        body_bits = []
+
+        for doc in docs:
+            if isinstance(doc, (list, tuple)):
+                action, doc = doc
+            elif action_template:
+                action = action_template.copy()
+                # FIXME: I don't like this, at all, but it sort of sucks without it,
+                # unless we tell people to use bulk_index if they want this
+                # also, what about parent and some other things, should we even
+                # try to extract it from the doc or just leave it for the user?
+                if 'id' in doc and 'index' in action:
+                    action['index']['_id'] = doc['id']
+            else:
+                raise ValueError('No action template provided and no action attached to doc %r!' % doc)
+
+            body_bits.append(self._encode_json(action))
+            if doc is not None:
+                body_bits.append(self._encode_json(doc))
+
+        # Need the trailing newline.
+        body = '\n'.join(body_bits) + '\n'
+        return self.send_request('POST',
+                                 ['_bulk'],
+                                 body,
+                                 encode_body=False,
+                                 query_params=query_params)
+
+    def bulk_index(self, index, doc_type, docs, id_field='id', **kwargs):
         """
         Index a list of documents as efficiently as possible.
 
@@ -351,28 +384,11 @@ class ElasticSearch(object):
         .. _`ES's bulk API`:
             http://www.elasticsearch.org/guide/reference/api/bulk.html
         """
-        body_bits = []
-
         if not docs:
             raise ValueError('No documents provided for bulk indexing!')
 
-        for doc in docs:
-            action = {'index': {'_index': index, '_type': doc_type}}
+        return self.bulk(docs, {'index': {'_index': index, '_type': doc_type}},  **kwargs)
 
-            if doc.get(id_field):
-                action['index']['_id'] = doc[id_field]
-
-            body_bits.append(self._encode_json(action))
-            body_bits.append(self._encode_json(doc))
-
-        # Need the trailing newline.
-        body = '\n'.join(body_bits) + '\n'
-        query_params['op_type'] = 'create'  # TODO: Why?
-        return self.send_request('POST',
-                                 ['_bulk'],
-                                 body,
-                                 encode_body=False,
-                                 query_params=query_params)
 
     @es_kwargs('routing', 'parent', 'replication', 'consistency', 'refresh')
     def delete(self, index, doc_type, id, query_params=None):

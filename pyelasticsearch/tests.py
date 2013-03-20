@@ -230,6 +230,21 @@ class IndexingTestCase(ElasticSearchTestCase):
         self.assertEqual(self.conn.count('*:*',
                                          index=['test-index'])['count'], 2)
 
+    def testBulk(self):
+        docs = [
+            {'name': 'Joe Tester', 'id': 302},
+            {'name': 'Bill Baloney', 'id': 303},
+        ]
+        result = self.conn.bulk(docs, {'index': {"_index": 'test-index', "_type": "test_type"}},  refresh=True)
+        self.assertEqual(len(result['items']), 2)
+        print result
+        self.assertEqual(result['items'][0]['index']['ok'], True)
+        self.assertEqual(result['items'][0]['index']['_id'], '302')
+        self.assertEqual(result['items'][1]['index']['ok'], True)
+        self.assertEqual(result['items'][1]['index']['_id'], '303')
+        self.assertEqual(self.conn.count('*:*',
+                                         index=['test-index'])['count'], 2)
+
     def testErrorHandling(self):
         # Wrong port.
         conn = ElasticSearch('http://localhost:1009200/')
