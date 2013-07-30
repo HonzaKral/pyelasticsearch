@@ -83,14 +83,13 @@ class IndexingTestCase(ElasticSearchTestCase):
 
     def test_update_settings(self):
         """Make sure ``update_settings()`` sends the expected request."""
-        with patch.object(self.conn, 'send_request') as send_request:
+        with patch.object(self.conn.es.indices, 'put_settings') as put_settings:
             self.conn.update_settings(['test-index', 'toast-index'],
                                       {'index': {'number_of_replicas': 2}})
-        send_request.assert_called_once_with(
-            'PUT',
-            ['test-index,toast-index', '_settings'],
+        put_settings.assert_called_once_with(
+            index=['test-index', 'toast-index'],
             body={'index': {'number_of_replicas': 2}},
-            query_params={})
+            params={})
 
     def test_health(self):
         with patch.object(self.conn, 'send_request') as send_request:

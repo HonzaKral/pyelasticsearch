@@ -699,9 +699,7 @@ class ElasticSearch(object):
         .. _`ES's get-settings API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-get-settings.html
         """
-        return self.send_request('GET',
-                                 [self._concat(index), '_settings'],
-                                 query_params=query_params)
+        return self.es.indices.get_settings(index=index, params=query_params)
 
     @es_kwargs()
     def update_settings(self, index, settings, query_params=None):
@@ -721,10 +719,7 @@ class ElasticSearch(object):
                              ' update_all_settings().')
         # If we implement the "update cluster settings" API, call that
         # update_cluster_settings().
-        return self.send_request('PUT',
-                                [self._concat(index), '_settings'],
-                                body=settings,
-                                query_params=query_params)
+        return self.es.indices.put_settings(index=index, body=settings, params=query_params)
 
     @es_kwargs()
     def update_all_settings(self, settings, query_params=None):
@@ -738,8 +733,7 @@ class ElasticSearch(object):
         .. _`ES's update-settings API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-update-settings.html
         """
-        return self.send_request('PUT', ['_settings'], body=settings,
-                                 query_params=query_params)
+        return self.es.indices.put_settings(body=settings, params=query_params)
 
     @es_kwargs('refresh')
     def flush(self, index=None, query_params=None):
