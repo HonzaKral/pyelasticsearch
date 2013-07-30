@@ -775,10 +775,7 @@ class ElasticSearch(object):
         .. _`ES's gateway-snapshot API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-gateway-snapshot.html
         """
-        return self.send_request(
-            'POST',
-            [self._concat(index), '_gateway', 'snapshot'],
-            query_params=query_params)
+        return self.es.indices.snapshot_index(index=index, params=query_params)
 
     @es_kwargs('max_num_segments', 'only_expunge_deletes', 'refresh', 'flush',
                'wait_for_merge')
