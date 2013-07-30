@@ -653,8 +653,7 @@ class ElasticSearch(object):
         if not index:
             raise ValueError('No indexes specified. To delete all indexes, use'
                              ' delete_all_indexes().')
-        return self.send_request('DELETE', [self._concat(index)],
-                                 query_params=query_params)
+        return self.es.indices.delete(index=index, params=query_params)
 
     def delete_all_indexes(self, **kwargs):
         """Delete all indexes."""
