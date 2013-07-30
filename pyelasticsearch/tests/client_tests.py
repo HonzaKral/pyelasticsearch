@@ -437,12 +437,12 @@ class DangerousOperationTests(ElasticSearchTestCase):
     """
     def test_delete_all(self):
         """Make sure ``delete_all()`` sends the right request."""
-        with patch.object(self.conn, 'send_request') as send_request:
+        with patch.object(self.conn.es.indices, 'delete_mapping') as delete_mapping:
             self.conn.delete_all('test-index', 'tweet')
-        send_request.assert_called_once_with(
-            'DELETE',
-            ['test-index', 'tweet'],
-            query_params={})
+        delete_mapping.assert_called_once_with(
+            index='test-index',
+            doc_type='tweet',
+            params={})
 
     def delete_index_no_args(self):
         """
