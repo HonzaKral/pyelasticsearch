@@ -516,10 +516,7 @@ class ElasticSearch(object):
         """
         # TODO: Think about turning index=None into _all if doc_type is non-
         # None, per the ES doc page.
-        return self.send_request(
-            'GET',
-            [self._concat(index), self._concat(doc_type), '_mapping'],
-            query_params=query_params)
+        return self.es.indices.get_mapping(index=index, doc_type=doc_type, params=query_params)
 
     @es_kwargs('ignore_conflicts')
     def put_mapping(self, index, doc_type, mapping, query_params=None):
@@ -541,11 +538,7 @@ class ElasticSearch(object):
         # don't need to expose the "_all" magic string. We haven't done it yet
         # since this routine is not dangerous: ES makes you explicily pass
         # "_all" to update all mappings.
-        return self.send_request(
-            'PUT',
-            [self._concat(index), doc_type, '_mapping'],
-            mapping,
-            query_params=query_params)
+        return self.es.indices.put_mapping(index=index, doc_type=doc_type, body=mapping, params=query_params)
 
     @es_kwargs('search_type', 'search_indices', 'search_types',
                'search_scroll', 'search_size', 'search_from',
