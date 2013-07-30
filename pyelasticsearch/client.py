@@ -671,8 +671,7 @@ class ElasticSearch(object):
         .. _`ES's close-index API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-open-close.html
         """
-        return self.send_request('POST', [index, '_close'],
-                                 query_params=query_params)
+        return self.es.indices.close(index=index, params=query_params)
 
     @es_kwargs()
     def open_index(self, index, query_params=None):
@@ -686,8 +685,7 @@ class ElasticSearch(object):
         .. _`ES's open-index API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-open-close.html
         """
-        return self.send_request('POST', [index, '_open'],
-                                 query_params=query_params)
+        return self.es.indices.open(index=index, params=query_params)
 
     @es_kwargs()
     def get_settings(self, index, query_params=None):
