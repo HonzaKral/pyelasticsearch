@@ -747,9 +747,7 @@ class ElasticSearch(object):
         .. _`ES's flush API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-flush.html
         """
-        return self.send_request('POST',
-                                 [self._concat(index), '_flush'],
-                                 query_params=query_params)
+        return self.es.indices.flush(index=index, params=query_params)
 
     @es_kwargs()
     def refresh(self, index=None, query_params=None):
@@ -763,8 +761,7 @@ class ElasticSearch(object):
         .. _`ES's refresh API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-refresh.html
         """
-        return self.send_request('POST', [self._concat(index), '_refresh'],
-                                 query_params=query_params)
+        return self.es.indices.refresh(index=index, params=query_params)
 
     @es_kwargs()
     def gateway_snapshot(self, index=None, query_params=None):
