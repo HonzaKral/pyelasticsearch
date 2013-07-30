@@ -405,8 +405,7 @@ class ElasticSearch(object):
                 doc['_id'] = id
             docs.append(doc)
 
-        return self.send_request(
-            'GET', ['_mget'], {'docs': docs}, query_params=query_params)
+        return self.es.mget(body={'docs': docs}, params=query_params)
 
     @es_kwargs('routing', 'parent', 'timeout', 'replication', 'consistency',
                'percolate', 'refresh', 'retry_on_conflict', 'fields')
