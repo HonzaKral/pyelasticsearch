@@ -805,10 +805,7 @@ class ElasticSearch(object):
         .. _`ES's cluster-health API`:
             http://www.elasticsearch.org/guide/reference/api/admin-cluster-health.html
         """
-        return self.send_request(
-            'GET',
-            ['_cluster', 'health', self._concat(index)],
-            query_params=query_params)
+        return self.es.cluster.health(index=index, params=query_params)
 
     @es_kwargs('filter_nodes', 'filter_routing_table', 'filter_metadata',
                'filter_blocks', 'filter_indices')

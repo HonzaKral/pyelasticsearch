@@ -92,20 +92,18 @@ class IndexingTestCase(ElasticSearchTestCase):
             params={})
 
     def test_health(self):
-        with patch.object(self.conn, 'send_request') as send_request:
+        with patch.object(self.conn.es.cluster, 'health') as health:
             self.conn.health(['test-index', 'toast-index'],
                              wait_for_status='yellow',
                              wait_for_nodes='>=1')
-        send_request.assert_called_once_with(
-            'GET',
-            ['_cluster', 'health', 'test-index,toast-index'],
-            query_params={'wait_for_status': 'yellow',
+        health.assert_called_once_with(
+            index=['test-index', 'toast-index'],
+            params={'wait_for_status': 'yellow',
                           'wait_for_nodes': '>=1'})
 
-        with patch.object(self.conn, 'send_request') as send_request:
+        with patch.object(self.conn.es.cluster, 'health') as health:
             self.conn.health()
-        send_request.assert_called_once_with(
-            'GET', ['_cluster', 'health', ''], query_params={})
+        health.assert_called_once_with(index=None, params={})
 
     def test_cluster_state(self):
         result = self.conn.cluster_state(filter_routing_table=True)
