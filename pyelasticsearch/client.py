@@ -309,8 +309,8 @@ class ElasticSearch(object):
         if id is None or id == '':
             raise ValueError('No ID specified. To delete all documents in '
                              'an index, use delete_all().')
-        return self.send_request('DELETE', [index, doc_type, id],
-                                 query_params=query_params)
+        return self.es.delete(index=index, doc_type=doc_type, id=id,
+                                params=query_params)
 
     @es_kwargs('routing', 'parent', 'replication', 'consistency', 'refresh')
     def delete_all(self, index, doc_type, query_params=None):
