@@ -841,7 +841,5 @@ class ElasticSearch(object):
         .. _`ES's percolate API`:
             http://www.elasticsearch.org/guide/reference/api/percolate/
         """
-        return self.send_request('GET',
-                                 [index, doc_type, '_percolate'], 
-                                 doc, query_params=query_params)
+        return self.es.percolate(index=index, doc_type=doc_type, body=doc, params=query_params)
 
