@@ -1,32 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from datetime import datetime
 from operator import itemgetter
 from functools import wraps
 from logging import getLogger
 import re
-from six import (iterkeys, binary_type, text_type, string_types, integer_types,
-                 iteritems, PY3)
-from six.moves import xrange
+from six import iterkeys, binary_type, text_type, string_types
 
 try:
     # PY3
-    from urllib.parse import urlencode, quote_plus
+    from urllib.parse import quote_plus
 except ImportError:
     # PY2
-    from urllib import urlencode, quote_plus
+    from urllib import quote_plus
 
-import requests
-import simplejson as json  # for use_decimal
-from simplejson import JSONDecodeError
+import elasticsearch as official_es
 
-from pyelasticsearch.downtime import DowntimePronePool
-from pyelasticsearch.exceptions import (Timeout, ConnectionError,
-                                        ElasticHttpError,
-                                        InvalidJsonResponseError,
-                                        ElasticHttpNotFoundError,
-                                        IndexAlreadyExistsError)
+from pyelasticsearch.exceptions import InvalidJsonResponseError, \
+                                       IndexAlreadyExistsError
 
 
 def _add_es_kwarg_docs(params, method):
@@ -98,6 +89,7 @@ def es_kwargs(*args_to_convert):
     return decorator
 
 
+
 class ElasticSearch(object):
     """
     An object which manages connections to elasticsearch and acts as a
@@ -119,14 +111,15 @@ class ElasticSearch(object):
         """
         if isinstance(urls, string_types):
             urls = [urls]
+
         urls = [u.rstrip('/') for u in urls]
-        self.servers = DowntimePronePool(urls, revival_delay)
-        self.revival_delay = revival_delay
-        self.timeout = timeout
-        self.max_retries = max_retries
+        urls = [u[7:] if u.startswith('http://') else u for u in urls]
+
+
+        self.es = official_es.Elasticsearch(urls, max_retries=max_retries,
+                        dead_timeout=revival_delay, timeout=timeout)
+
         self.logger = getLogger('pyelasticsearch')
-        self.session = requests.session()
-        self.json_encoder = JsonEncoder
 
     def _concat(self, items):
         """
@@ -141,28 +134,6 @@ class ElasticSearch(object):
         if isinstance(items, string_types):
             items = [items]
         return ','.join(i for i in items if i != '_all')
-
-    def _to_query(self, obj):
-        """
-        Convert a native-Python object to a unicode or bytestring
-        representation suitable for a query string.
-        """
-        # Quick and dirty thus far
-        if isinstance(obj, string_types):
-            return obj
-        if isinstance(obj, bool):
-            return 'true' if obj else 'false'
-        if isinstance(obj, integer_types):
-            return str(obj)
-        if isinstance(obj, float):
-            return repr(obj)  # str loses precision.
-        if isinstance(obj, (list, tuple)):
-            return ','.join(self._to_query(o) for o in obj)
-        iso = _iso_datetime(obj)
-        if iso:
-            return iso
-        raise TypeError("_to_query() doesn't know how to represent %r in an ES"
-                        ' query string.' % obj)
 
     def _utf8(self, thing):
         """Convert any arbitrary ``thing`` to a utf-8 bytestring."""
@@ -212,74 +183,14 @@ class ElasticSearch(object):
         :arg encode_body: Whether to encode the body of the request as JSON
         """
         path = self._join_path(path_components)
-        if query_params:
-            path = '?'.join(
-                [path,
-                 urlencode(dict((k, self._utf8(self._to_query(v))) for k, v in
-                                iteritems(query_params)))])
-
-        request_body = self._encode_json(body) if encode_body else body
-        req_method = getattr(self.session, method.lower())
-
-        # We do our own retrying rather than using urllib3's; we want to retry
-        # a different node in the cluster if possible, not the same one again
-        # (which may be down).
-        for attempt in xrange(self.max_retries + 1):
-            server_url, was_dead = self.servers.get()
-            url = server_url + path
-            self.logger.debug(
-                "Making a request equivalent to this: curl -X%s '%s' -d '%s'",
-                method, url, request_body)
-
-            try:
-                resp = req_method(
-                    url,
-                    timeout=self.timeout,
-                    **({'data': request_body} if body else {}))
-            except (ConnectionError, Timeout):
-                self.servers.mark_dead(server_url)
-                self.logger.info('%s marked as dead for %s seconds.',
-                                 server_url,
-                                 self.revival_delay)
-                if attempt >= self.max_retries:
-                    raise
-            else:
-                if was_dead:
-                    self.servers.mark_live(server_url)
-                break
-
-        self.logger.debug('response status: %s', resp.status_code)
-        prepped_response = self._decode_response(resp)
-        if resp.status_code >= 400:
-            self._raise_exception(resp, prepped_response)
-        self.logger.debug('got response %s', prepped_response)
-        return prepped_response
-
-    def _raise_exception(self, response, decoded_body):
-        """Raise an exception based on an error-indicating response from ES."""
-        error_message = decoded_body.get('error', decoded_body)
-
-        error_class = ElasticHttpError
-        if response.status_code == 404:
-            error_class = ElasticHttpNotFoundError
-        elif error_message.startswith('IndexAlreadyExistsException'):
-            error_class = IndexAlreadyExistsError
-
-        raise error_class(response.status_code, error_message)
-
-    def _encode_json(self, value):
-        """
-        Convert a Python value to a form suitable for ElasticSearch's JSON DSL.
-        """
-        return json.dumps(value, cls=self.json_encoder, use_decimal=True)
-
-    def _decode_response(self, response):
-        """Return a native-Python representation of a response's JSON blob."""
         try:
-            json_response = response.json()
-        except JSONDecodeError:
-            raise InvalidJsonResponseError(response)
-        return json_response
+            return self.es.transport.perform_request(method, path, body=body, params=query_params)[1]
+        except official_es.TransportError as e:
+            if e.error.startswith('IndexAlreadyExistsException'):
+                raise IndexAlreadyExistsError(e.status_code, e.error)
+            raise
+        except official_es.SerializationError as e:
+            raise InvalidJsonResponseError(e.args[0])
 
     ## REST API
 
@@ -375,16 +286,10 @@ class ElasticSearch(object):
             if doc.get(parent_field) is not None:
                 action['index']['_parent'] = doc.pop(parent_field)
 
-            body_bits.append(self._encode_json(action))
-            body_bits.append(self._encode_json(doc))
+            body_bits.append(action)
+            body_bits.append(doc)
 
-        # Need the trailing newline.
-        body = '\n'.join(body_bits) + '\n'
-        return self.send_request('POST',
-                                 ['_bulk'],
-                                 body,
-                                 encode_body=False,
-                                 query_params=query_params)
+        return self.es.bulk(body_bits, params=query_params)
 
     @es_kwargs('routing', 'parent', 'replication', 'consistency', 'refresh')
     def delete(self, index, doc_type, id, query_params=None):
@@ -983,28 +888,3 @@ class ElasticSearch(object):
                                  [index, doc_type, '_percolate'], 
                                  doc, query_params=query_params)
 
-
-class JsonEncoder(json.JSONEncoder):
-    def default(self, value):
-        """Convert more Python data types to ES-understandable JSON."""
-        iso = _iso_datetime(value)
-        if iso:
-            return iso
-        if not PY3 and isinstance(value, str):
-            return unicode(value, errors='replace')  # TODO: Be stricter.
-        if isinstance(value, set):
-            return list(value)
-        return super(JsonEncoder, self).default(value)
-
-
-def _iso_datetime(value):
-    """
-    If value appears to be something datetime-like, return it in ISO format.
-
-    Otherwise, return None.
-    """
-    if hasattr(value, 'strftime'):
-        if hasattr(value, 'hour'):
-            return value.isoformat()
-        else:
-            return '%sT00:00:00' % value.isoformat()

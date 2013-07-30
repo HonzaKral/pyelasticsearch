@@ -3,7 +3,7 @@ import unittest
 
 from mock import patch
 from nose import SkipTest
-from nose.tools import eq_, ok_, assert_raises
+from nose.tools import eq_, ok_
 import requests
 import six
 
@@ -14,24 +14,6 @@ from pyelasticsearch.client import es_kwargs
 
 class KwargsForQueryTests(unittest.TestCase):
     """Tests for the ``es_kwargs`` decorator and such"""
-
-    def test_to_query(self):
-        """Test the thing that translates objects to query string text."""
-        to_query = ElasticSearch([])._to_query
-        eq_(to_query(4), '4')
-        eq_(to_query(4.5), '4.5')
-        eq_(to_query(True), 'true')
-        eq_(to_query(('4', 'hi', 'thomas')), '4,hi,thomas')
-        eq_(to_query(datetime(2000, 1, 2, 12, 34, 56)),
-                         '2000-01-02T12:34:56')
-        eq_(to_query(date(2000, 1, 2)),
-                         '2000-01-02T00:00:00')
-        assert_raises(TypeError, to_query, object())
-
-        # do not use unittest.skipIf because of python 2.6
-        if not six.PY3:
-            eq_(to_query(long(4)), '4')
-
 
     def test_es_kwargs(self):
         """
@@ -61,8 +43,8 @@ class KwargsForQueryTests(unittest.TestCase):
             return response
 
         conn = ElasticSearch('http://example.com:9200/')
-        with patch.object(conn.session, 'put') as put:
-            put.side_effect = valid_responder
+        with patch.object(conn, 'send_request') as send_request:
+            send_request.side_effect = valid_responder
             conn.index('some_index',
                        'some_type',
                        {'some': 'doc'},
@@ -72,13 +54,15 @@ class KwargsForQueryTests(unittest.TestCase):
                        es_borkfest='gerbils:great')
 
         # Make sure all the query string params got into the URL:
-        url = put.call_args[0][0]
-        ok_(
-            url.startswith('http://example.com:9200/some_index/some_type/3?'))
-        ok_('routing=boogie' in url)
-        ok_('snorkfest=true' in url)
-        ok_('borkfest=gerbils%3Agreat' in url)
-        ok_('es_' not in url)  # We stripped the "es_" prefixes.
+        url = conn._join_path(send_request.call_args[0][1])
+
+        ok_(url == '/some_index/some_type/3')
+        qparams = send_request.call_args[0][3]
+        ok_(qparams['routing'] == 'boogie')
+        ok_(qparams['snorkfest'] == True)
+        ok_(qparams['borkfest'] == 'gerbils:great')
+        for k in qparams:
+            ok_('es_' not in k)  # We stripped the "es_" prefixes.
 
     def test_arg_cross_refs_with_trailing(self):
         """
