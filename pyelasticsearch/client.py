@@ -790,9 +790,7 @@ class ElasticSearch(object):
         .. _`ES's optimize API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-optimize.html
         """
-        return self.send_request('POST',
-                                 [self._concat(index), '_optimize'],
-                                 query_params=query_params)
+        return self.es.indices.optimize(index=index, params=query_params)
 
     @es_kwargs('level', 'wait_for_status', 'wait_for_relocating_shards',
                'wait_for_nodes', 'timeout')
