@@ -368,8 +368,7 @@ class ElasticSearch(object):
         .. _`ES's get API`:
             http://www.elasticsearch.org/guide/reference/api/get.html
         """
-        return self.send_request('GET', [index, doc_type, id],
-                                 query_params=query_params)
+        return self.es.get(index=index, doc_type=doc_type, id=id, params=query_params)
 
     @es_kwargs()
     def multi_get(self, ids, index=None, doc_type=None, fields=None,
