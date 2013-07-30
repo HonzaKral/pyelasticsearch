@@ -327,8 +327,8 @@ class ElasticSearch(object):
         .. _`ES's delete API`:
             http://www.elasticsearch.org/guide/reference/api/delete.html
         """
-        return self.send_request('DELETE', [index, doc_type],
-                                 query_params=query_params)
+        return self.es.indices.delete_mapping(index=index, doc_type=doc_type,
+                                params=query_params)
 
     @es_kwargs('q', 'df', 'analyzer', 'default_operator', 'source' 'routing',
                'replication', 'consistency')
