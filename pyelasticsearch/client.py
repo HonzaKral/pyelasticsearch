@@ -627,8 +627,13 @@ class ElasticSearch(object):
         .. _`ES's create-index API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-create-index.html
         """
-        return self.send_request('PUT', [index], body=settings,
-                                 query_params=query_params)
+        try:
+            return self.es.indices.create(index=index, body=settings, params=query_params)
+        except official_es.TransportError as e:
+            # backwards compatible special-case exception
+            if e.error.startswith('IndexAlreadyExistsException'):
+                raise IndexAlreadyExistsError(e.status_code, e.error)
+            raise
 
     @es_kwargs()
     def delete_index(self, index, query_params=None):
