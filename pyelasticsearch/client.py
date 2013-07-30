@@ -565,10 +565,7 @@ class ElasticSearch(object):
             http://www.elasticsearch.org/guide/reference/api/more-like-this.html
         """
         query_params['mlt_fields'] = self._concat(mlt_fields)
-        return self.send_request('GET',
-                                 [index, doc_type, id, '_mlt'],
-                                 body=body,
-                                 query_params=query_params)
+        return self.es.mlt(index=index, doc_type=doc_type, id=id, body=body, params=query_params)
 
     ## Index Admin API
 
