@@ -239,19 +239,22 @@ class IndexingTestCase(ElasticSearchTestCase):
     def test_update(self):
         """Smoke-test the ``update()`` API."""
         SCRIPT = 'ctx._source.thing += count'
-        with patch.object(self.conn, 'send_request') as send_request:
+        with patch.object(self.conn.es, 'update') as update:
             self.conn.update('some_index',
                              'some_type',
                              3,
                              SCRIPT,
                              params={'count': 5},
                              lang='python')
-        send_request.assert_called_once_with(
-            'POST', ['some_index', 'some_type', 3, '_update'],
+        update.assert_called_once_with(
+            index='some_index',
+            doc_type='some_type',
+            id=3,
             body={'script': SCRIPT,
                   'params': {'count': 5},
                   'lang': 'python'},
-                  query_params={})
+            params={}
+        )
 
     def test_alias_index(self):
         self.conn.create_index('test-index')

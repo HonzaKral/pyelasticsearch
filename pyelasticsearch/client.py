@@ -441,11 +441,8 @@ class ElasticSearch(object):
             body['upsert'] = upsert
         if params:
             body['params'] = params
-        return self.send_request(
-            'POST',
-            [index, doc_type, id, '_update'],
-            body=body,
-            query_params=query_params)
+
+        return self.es.update(index=index, doc_type=doc_type, id=id, body=body, params=query_params)
 
     def _search_or_count(self, kind, query, index=None, doc_type=None,
                          query_params=None):
