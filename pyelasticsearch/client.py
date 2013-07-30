@@ -352,11 +352,7 @@ class ElasticSearch(object):
             body = ''
         else:
             body = query
-        return self.send_request(
-            'DELETE',
-            [self._concat(index), self._concat(doc_type), '_query'],
-            body,
-            query_params=query_params)
+        return self.es.delete_by_query(index=index, doc_type=doc_type, body=body, params=query_params)
 
     @es_kwargs('realtime', 'fields', 'routing', 'preference', 'refresh')
     def get(self, index, doc_type, id, query_params=None):
