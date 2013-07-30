@@ -609,8 +609,7 @@ class ElasticSearch(object):
         .. _`ES's admin-indices-aliases API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-aliases.html
         """
-        return self.send_request('GET', [self._concat(index), '_aliases'],
-                                 query_params=query_params)
+        return self.es.indices.get_aliases(index=index, params=query_params)
 
     @es_kwargs()
     def create_index(self, index, settings=None, query_params=None):
