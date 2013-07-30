@@ -248,10 +248,8 @@ class ElasticSearch(object):
         if not overwrite_existing:
             query_params['op_type'] = 'create'
 
-        return self.send_request('POST' if id is None else 'PUT',
-                                 [index, doc_type, id],
-                                 doc,
-                                 query_params)
+        return self.es.index(index=index, doc_type=doc_type, id=id, body=doc,
+                    params=query_params)
 
     @es_kwargs('consistency', 'refresh')
     def bulk_index(self, index, doc_type, docs, id_field='id',

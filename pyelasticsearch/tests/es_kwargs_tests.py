@@ -43,8 +43,8 @@ class KwargsForQueryTests(unittest.TestCase):
             return response
 
         conn = ElasticSearch('http://example.com:9200/')
-        with patch.object(conn, 'send_request') as send_request:
-            send_request.side_effect = valid_responder
+        with patch.object(conn.es, 'index') as index:
+            index.side_effect = valid_responder
             conn.index('some_index',
                        'some_type',
                        {'some': 'doc'},
@@ -53,15 +53,11 @@ class KwargsForQueryTests(unittest.TestCase):
                        es_snorkfest=True,
                        es_borkfest='gerbils:great')
 
-        # Make sure all the query string params got into the URL:
-        url = conn._join_path(send_request.call_args[0][1])
-
-        ok_(url == '/some_index/some_type/3')
-        qparams = send_request.call_args[0][3]
-        ok_(qparams['routing'] == 'boogie')
-        ok_(qparams['snorkfest'] == True)
-        ok_(qparams['borkfest'] == 'gerbils:great')
-        for k in qparams:
+        params = index.call_args[1]['params']
+        ok_(params['routing'] == 'boogie')
+        ok_(params['snorkfest'] == True)
+        ok_(params['borkfest'] == 'gerbils:great')
+        for k in params:
             ok_('es_' not in k)  # We stripped the "es_" prefixes.
 
     def test_arg_cross_refs_with_trailing(self):
