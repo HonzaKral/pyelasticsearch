@@ -821,8 +821,7 @@ class ElasticSearch(object):
         .. _`ES's cluster-state API`:
             http://www.elasticsearch.org/guide/reference/api/admin-cluster-state.html
         """
-        return self.send_request(
-            'GET', ['_cluster', 'state'], query_params=query_params)
+        return self.es.cluster.state(params=query_params)
 
     @es_kwargs()
     def percolate(self, index, doc_type, doc, query_params=None):
