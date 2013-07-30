@@ -581,8 +581,7 @@ class ElasticSearch(object):
         .. _`ES's index-status API`:
             http://www.elasticsearch.org/guide/reference/api/admin-indices-status.html
         """
-        return self.send_request('GET', [self._concat(index), '_status'],
-                                 query_params=query_params)
+        return self.es.indices.status(index=index, params=query_params)
 
     @es_kwargs()
     def update_aliases(self, settings, query_params=None):
