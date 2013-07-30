@@ -444,22 +444,8 @@ class ElasticSearch(object):
 
         return self.es.update(index=index, doc_type=doc_type, id=id, body=body, params=query_params)
 
-    def _search_or_count(self, kind, query, index=None, doc_type=None,
-                         query_params=None):
-        if isinstance(query, string_types):
-            query_params['q'] = query
-            body = ''
-        else:
-            body = query
-
-        return self.send_request(
-            'GET',
-            [self._concat(index), self._concat(doc_type), kind],
-            body,
-            query_params=query_params)
-
     @es_kwargs('routing', 'size')
-    def search(self, query, **kwargs):
+    def search(self, query, index=None, doc_type=None, query_params=None):
         """
         Execute a search query against one or more indices and get back search
         hits.
@@ -479,10 +465,16 @@ class ElasticSearch(object):
         .. _`ES's search API`:
             http://www.elasticsearch.org/guide/reference/api/search/
         """
-        return self._search_or_count('_search', query, **kwargs)
+        if isinstance(query, string_types):
+            query_params['q'] = query
+            body = None
+        else:
+            body = query
+
+        return self.es.search(index=index, doc_type=doc_type, body=body, params=query_params)
 
     @es_kwargs('df', 'analyzer', 'default_operator', 'source', 'routing')
-    def count(self, query, **kwargs):
+    def count(self, query, index=None, doc_type=None, query_params=None):
         """
         Execute a query against one or more indices and get hit count.
 
@@ -499,7 +491,13 @@ class ElasticSearch(object):
         .. _`ES's count API`:
             http://www.elasticsearch.org/guide/reference/api/count.html
         """
-        return self._search_or_count('_count', query, **kwargs)
+        if isinstance(query, string_types):
+            query_params['q'] = query
+            body = None
+        else:
+            body = query
+
+        return self.es.count(index=index, doc_type=doc_type, body=body, params=query_params)
 
     @es_kwargs()
     def get_mapping(self, index=None, doc_type=None, query_params=None):

@@ -360,14 +360,14 @@ class SearchTestCase(ElasticSearchTestCase):
         self.assert_result_contains(result, {'hits': {'hits': [{'_score': 0.19178301, '_type': 'test-type', '_id': '1', '_source': {'name': 'Joe Tester'}, '_index': 'test-index'}], 'total': 1, 'max_score': 0.19178301}})
 
     def test_search_string_paginated(self):
-        with patch.object(self.conn, 'send_request') as send_request:
+        with patch.object(self.conn.es, 'search') as search:
             self.conn.search('*:*', index='test-index', es_from=1, size=1)
 
-        send_request.assert_called_once_with(
-            'GET',
-            ['test-index', '', '_search'],
-            '',
-            query_params={'q': '*:*', 'from': 1, 'size': 1})
+        search.assert_called_once_with(
+            index='test-index',
+            doc_type=None,
+            body=None,
+            params={'q': '*:*', 'from': 1, 'size': 1})
 
     def test_search_by_dsl(self):
         self.conn.index('test-index', 'test-type', {'name': 'AgeJoe Tester', 'age': 25}, id=1)
