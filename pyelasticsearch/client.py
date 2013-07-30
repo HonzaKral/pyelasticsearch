@@ -5,19 +5,11 @@ from operator import itemgetter
 from functools import wraps
 from logging import getLogger
 import re
-from six import iterkeys, binary_type, text_type, string_types
-
-try:
-    # PY3
-    from urllib.parse import quote_plus
-except ImportError:
-    # PY2
-    from urllib import quote_plus
+from six import iterkeys, string_types
 
 import elasticsearch as official_es
 
-from pyelasticsearch.exceptions import InvalidJsonResponseError, \
-                                       IndexAlreadyExistsError
+from pyelasticsearch.exceptions import IndexAlreadyExistsError
 
 
 def _add_es_kwarg_docs(params, method):
@@ -120,77 +112,6 @@ class ElasticSearch(object):
                         dead_timeout=revival_delay, timeout=timeout)
 
         self.logger = getLogger('pyelasticsearch')
-
-    def _concat(self, items):
-        """
-        Return a comma-delimited concatenation of the elements of ``items``,
-        with any occurrences of "_all" omitted.
-
-        If ``items`` is a string, promote it to a 1-item list.
-        """
-        # TODO: Why strip out _all?
-        if items is None:
-            return ''
-        if isinstance(items, string_types):
-            items = [items]
-        return ','.join(i for i in items if i != '_all')
-
-    def _utf8(self, thing):
-        """Convert any arbitrary ``thing`` to a utf-8 bytestring."""
-        if isinstance(thing, binary_type):
-            return thing
-        if not isinstance(thing, text_type):
-            thing = text_type(thing)
-        return thing.encode('utf-8')
-
-    def _join_path(self, path_components):
-        """
-        Smush together the path components, omitting '' and None ones.
-
-        Unicodes get encoded to strings via utf-8. Incoming strings are assumed
-        to be utf-8-encoded already.
-        """
-        path = '/'.join(quote_plus(self._utf8(p), '') for p in path_components if
-                        p is not None and p != '')
-
-        if not path.startswith('/'):
-            path = '/' + path
-        return path
-
-    def send_request(self,
-                     method,
-                     path_components,
-                     body='',
-                     query_params=None,
-                     encode_body=True):
-        """
-        Send an HTTP request to ES, and return the JSON-decoded response.
-
-        This is mostly an internal method, but it also comes in handy if you
-        need to use a brand new ES API that isn't yet explicitly supported by
-        pyelasticsearch, while still taking advantage of our connection pooling
-        and retrying.
-
-        Retry the request on different servers if the first one is down and
-        ``self.max_retries`` > 0.
-
-        :arg method: An HTTP method, like "GET"
-        :arg path_components: An iterable of path components, to be joined by
-            "/"
-        :arg body: The request body
-        :arg query_params: A map of querystring param names to values or
-            ``None``
-        :arg encode_body: Whether to encode the body of the request as JSON
-        """
-        path = self._join_path(path_components)
-        try:
-            return self.es.transport.perform_request(method, path, body=body, params=query_params)[1]
-        except official_es.TransportError as e:
-            if e.error.startswith('IndexAlreadyExistsException'):
-                raise IndexAlreadyExistsError(e.status_code, e.error)
-            raise
-        except official_es.SerializationError as e:
-            raise InvalidJsonResponseError(e.args[0])
 
     ## REST API
 
@@ -564,7 +485,7 @@ class ElasticSearch(object):
         .. _`ES's more-like-this API`:
             http://www.elasticsearch.org/guide/reference/api/more-like-this.html
         """
-        query_params['mlt_fields'] = self._concat(mlt_fields)
+        query_params['mlt_fields'] = mlt_fields
         return self.es.mlt(index=index, doc_type=doc_type, id=id, body=body, params=query_params)
 
     ## Index Admin API

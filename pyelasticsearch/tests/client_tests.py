@@ -284,21 +284,6 @@ class IndexingTestCase(ElasticSearchTestCase):
         result = self.conn.aliases('test-index')
         eq_(result, {u'test-index': {u'aliases': {u'test-alias': {}}}})
 
-    def test_empty_path_segments(self):
-        """'' segments passed to ``_join_path`` should be omitted."""
-        # Call _join_path like get_mapping might if called with no params:
-        eq_(self.conn._join_path(['', '', '_mapping']),
-                         '/_mapping')
-
-    def test_0_path_segments(self):
-        """
-        ``0`` segments passed to ``_join_path`` should be included.
-
-        This is so doc IDs that are 0 work.
-        """
-        eq_(self.conn._join_path([0, '_mapping']),
-                         '/0/_mapping')
-
     def test_percolate(self):
         self.conn.create_index('test-index')
 
