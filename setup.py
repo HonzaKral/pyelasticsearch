@@ -55,13 +55,11 @@ setup(
     ],
     requires=[  # Needed?
         'six',
-        'requests(>=1.0,<2.0)',
-        'simplejson(>=2.1.0)',
+        'elasticsearch'
     ],
     install_requires=[
-        'requests>=1.0,<2.0',
-        'simplejson>=2.1.0',
-        'six'
+        'six',
+        'elasticsearch'
     ],
     tests_require=['mock', 'nose>=1.2.1'],
     test_suite='nose.collector',
