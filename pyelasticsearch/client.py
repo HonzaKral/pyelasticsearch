@@ -107,7 +107,6 @@ class ElasticSearch(object):
         urls = [u.rstrip('/') for u in urls]
         urls = [u[7:] if u.startswith('http://') else u for u in urls]
 
-
         self.es = official_es.Elasticsearch(urls, max_retries=max_retries,
                         dead_timeout=revival_delay, timeout=timeout)
 
