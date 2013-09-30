@@ -30,7 +30,7 @@ class KwargsForQueryTests(unittest.TestCase):
             return doc, query_params, other_kwarg
 
         eq_(index(3, refresh=True, es_timeout=7, other_kwarg=1),
-                         (3, {'refresh': True, 'timeout': 7}, 1))
+                         (3, {'refresh': 'true', 'timeout': '7'}, 1))
         eq_(index.__name__, 'index')
 
     def test_index(self):
@@ -55,7 +55,7 @@ class KwargsForQueryTests(unittest.TestCase):
 
         params = index.call_args[1]['params']
         ok_(params['routing'] == 'boogie')
-        ok_(params['snorkfest'] == True)
+        ok_(params['snorkfest'] == 'true')
         ok_(params['borkfest'] == 'gerbils:great')
         for k in params:
             ok_('es_' not in k)  # We stripped the "es_" prefixes.

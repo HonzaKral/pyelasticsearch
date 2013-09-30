@@ -8,6 +8,7 @@ import re
 from six import iterkeys, string_types
 
 import elasticsearch as official_es
+from elasticsearch.client.utils import _escape
 
 from pyelasticsearch.exceptions import IndexAlreadyExistsError
 
@@ -73,9 +74,11 @@ def es_kwargs(*args_to_convert):
             query_params = {}
             for k in list(iterkeys(kwargs)):  # Make a copy; we mutate kwargs.
                 if k.startswith('es_'):
-                    query_params[k[3:]] = kwargs.pop(k)
+                    query_params[k[3:]] = _escape(kwargs.pop(k))
                 elif k in convertible_args:
-                    query_params[k] = kwargs.pop(k)
+                    print k, kwargs[k]
+                    query_params[k] = _escape(kwargs.pop(k))
+                    print k, query_params[k]
             return func(*args, query_params=query_params, **kwargs)
         return decorate
     return decorator
@@ -268,7 +271,7 @@ class ElasticSearch(object):
             http://www.elasticsearch.org/guide/reference/api/delete-by-query.html
         """
         if isinstance(query, string_types) and 'q' not in query_params:
-            query_params['q'] = query
+            query_params['q'] = _escape(query)
             body = ''
         else:
             body = query
@@ -386,7 +389,7 @@ class ElasticSearch(object):
             http://www.elasticsearch.org/guide/reference/api/search/
         """
         if isinstance(query, string_types):
-            query_params['q'] = query
+            query_params['q'] = _escape(query)
             body = None
         else:
             body = query
@@ -412,7 +415,7 @@ class ElasticSearch(object):
             http://www.elasticsearch.org/guide/reference/api/count.html
         """
         if isinstance(query, string_types):
-            query_params['q'] = query
+            query_params['q'] = _escape(query)
             body = None
         else:
             body = query
@@ -484,7 +487,7 @@ class ElasticSearch(object):
         .. _`ES's more-like-this API`:
             http://www.elasticsearch.org/guide/reference/api/more-like-this.html
         """
-        query_params['mlt_fields'] = mlt_fields
+        query_params['mlt_fields'] = _escape(mlt_fields)
         return self.es.mlt(index=index, doc_type=doc_type, id=id, body=body, params=query_params)
 
     ## Index Admin API

@@ -65,12 +65,14 @@ class IndexingTestCase(ElasticSearchTestCase):
     def test_close_index(self):
         """Make sure a close_index call on an open index reports success."""
         self.conn.create_index('test-index')
+        self.conn.health(wait_for_status='yellow')
         result = self.conn.close_index('test-index')
         self.assert_result_contains(result, {'acknowledged': True, 'ok': True})
 
     def test_open_index(self):
         """Make sure an open_index call on a closed index reports success."""
         self.conn.create_index('test-index')
+        self.conn.health(wait_for_status='yellow')
         self.conn.close_index('test-index')
         result = self.conn.open_index('test-index')
         self.assert_result_contains(result, {'acknowledged': True, 'ok': True})
@@ -351,7 +353,7 @@ class SearchTestCase(ElasticSearchTestCase):
             index='test-index',
             doc_type=None,
             body=None,
-            params={'q': '*:*', 'from': 1, 'size': 1})
+            params={'q': '*:*', 'from': '1', 'size': '1'})
 
     def test_search_by_dsl(self):
         self.conn.index('test-index', 'test-type', {'name': 'AgeJoe Tester', 'age': 25}, id=1)
