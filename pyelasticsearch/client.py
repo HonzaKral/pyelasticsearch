@@ -76,9 +76,7 @@ def es_kwargs(*args_to_convert):
                 if k.startswith('es_'):
                     query_params[k[3:]] = _escape(kwargs.pop(k))
                 elif k in convertible_args:
-                    print k, kwargs[k]
                     query_params[k] = _escape(kwargs.pop(k))
-                    print k, query_params[k]
             return func(*args, query_params=query_params, **kwargs)
         return decorate
     return decorator
